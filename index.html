@@ -169,60 +169,105 @@
   </main>
 
 
+
+
+
 <script>
-const APPS_SCRIPT_URL='/api/register';
-const form=document.getElementById('regForm');
-const submitBtn=document.getElementById('submitBtn');
+(function () {
+  'use strict';
 
-function makeRegNo(){
-  const d=new Date();
-  return 'MS-'+d.getFullYear().toString().slice(-2)+String(d.getMonth()+1).padStart(2,'0')+
-    String(d.getDate()).padStart(2,'0')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
-}
-
-form.addEventListener('submit',async(e)=>{
-  e.preventDefault();
-  const fullName=document.getElementById('fullName').value.trim();
-  if(!fullName){ alert('กรุณากรอกชื่อ-นามสกุล'); return; }
-
-  const regNo=makeRegNo();
-  const payload=new URLSearchParams({
-    fullName,
-    phone:document.getElementById('phone').value.trim(),
-    organization:document.getElementById('organization').value.trim(),
-    guests:document.getElementById('guests').value||'0',
-    note:document.getElementById('note').value.trim(),
-    regNo
-  });
-
-  const oldText=submitBtn.textContent;
-  submitBtn.disabled=true;
-  submitBtn.textContent='กำลังส่งข้อมูล...';
-
-  try{
-    const response = await fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(Object.fromEntries(payload))
-    });
-    const result = await response.json();
-    if(!response.ok || !result.ok){
-      throw new Error(result.message || 'บันทึกข้อมูลไม่สำเร็จ');
-    }
-    document.getElementById('regNo').textContent=result.regNo || regNo;
-    document.getElementById('successName').textContent=fullName;
-    document.getElementById('formCard').style.display='none';
-    document.getElementById('successCard').style.display='block';
-    window.scrollTo({top:0,behavior:'smooth'});
-    form.reset();
-  }catch(err){
-    console.error(err);
-    alert('ไม่สามารถส่งข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
-  }finally{
-    submitBtn.disabled=false;
-    submitBtn.textContent=oldText;
+  function makeRegNo() {
+    const d = new Date();
+    return 'MS-' +
+      d.getFullYear().toString().slice(-2) +
+      String(d.getMonth() + 1).padStart(2, '0') +
+      String(d.getDate()).padStart(2, '0') + '-' +
+      Math.random().toString(36).slice(2, 6).toUpperCase();
   }
-});
+
+  async function sendRegistration(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    const form = document.getElementById('regForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const fullName = document.getElementById('fullName').value.trim();
+
+    if (!fullName) {
+      alert('กรุณากรอกชื่อ-นามสกุล');
+      return false;
+    }
+
+    const regNo = makeRegNo();
+    const data = {
+      fullName: fullName,
+      phone: document.getElementById('phone').value.trim(),
+      organization: document.getElementById('organization').value.trim(),
+      guests: document.getElementById('guests').value || '0',
+      note: document.getElementById('note').value.trim(),
+      regNo: regNo
+    };
+
+    const oldText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังบันทึกข้อมูล...';
+
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (_) {
+        throw new Error('เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง');
+      }
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.message || 'บันทึกข้อมูลไม่สำเร็จ');
+      }
+
+      document.getElementById('regNo').textContent = result.regNo || regNo;
+      document.getElementById('successName').textContent = result.name || fullName;
+      document.getElementById('formCard').style.display = 'none';
+      document.getElementById('successCard').style.display = 'block';
+      form.reset();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error(err);
+      alert('ส่งข้อมูลไม่สำเร็จ: ' + (err.message || err));
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+    }
+    return false;
+  }
+
+  function init() {
+    const form = document.getElementById('regForm');
+    if (!form) {
+      alert('ไม่พบแบบฟอร์มลงทะเบียน');
+      return;
+    }
+    form.setAttribute('action', 'javascript:void(0);');
+    form.setAttribute('method', 'post');
+    form.addEventListener('submit', sendRegistration, false);
+
+    const btn = document.getElementById('submitBtn');
+    if (btn) btn.setAttribute('type', 'submit');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 </script>
 
 </body>
