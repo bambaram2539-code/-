@@ -170,7 +170,7 @@
 
 
 <script>
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbyxDkYTUqhfoQZBWtZI1XUjRg-bQ6a-IyA7eWgIdqfr1VFLYlk52iQx6n9zLLDDaTiE/exec';
+const APPS_SCRIPT_URL='/api/register';
 const form=document.getElementById('regForm');
 const submitBtn=document.getElementById('submitBtn');
 
@@ -200,8 +200,16 @@ form.addEventListener('submit',async(e)=>{
   submitBtn.textContent='กำลังส่งข้อมูล...';
 
   try{
-    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:payload});
-    document.getElementById('regNo').textContent=regNo;
+    const response = await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(Object.fromEntries(payload))
+    });
+    const result = await response.json();
+    if(!response.ok || !result.ok){
+      throw new Error(result.message || 'บันทึกข้อมูลไม่สำเร็จ');
+    }
+    document.getElementById('regNo').textContent=result.regNo || regNo;
     document.getElementById('successName').textContent=fullName;
     document.getElementById('formCard').style.display='none';
     document.getElementById('successCard').style.display='block';
